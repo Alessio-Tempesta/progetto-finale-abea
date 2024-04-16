@@ -4,8 +4,11 @@ import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import productRoutes from './routes/productRoutes.js'
+import authRoutes from './routes/authRoutes.js'
+import orderRoutes from './routes/orderRoutes.js';
 
-// 
+
 const app = express();
 const prisma = new PrismaClient();
 
@@ -37,6 +40,11 @@ app.use((req, res, next ) => {
 });
 
 // Configrazione delle rotte 
-app.use('/api/auth', )
+app.use('/product', productRoutes);
+app.use('/auth', authRoutes);
+app.use('/order', orderRoutes);
 
 
+app.listen( 80 , ()=> {
+    console.log("Server in funzione all aporta 80")
+})

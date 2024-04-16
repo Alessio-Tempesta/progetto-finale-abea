@@ -3,6 +3,19 @@ import  { PrismaClient} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+export const authorize = (requiredRole) => {
+    return ( req, res, next) => {
+        const userRole = req.user.role;
+        
+        if( userRole !== requiredRole ) {
+            return res.status(403).json( { error : "Accesso non autorizzato"})
+        }
+        // Se l'utente ha il suo ruoolo
+        next();
+    }
+}
+
+
 // funzione per fare il login 
 export const loginUser = async ( req, res ) => {
     const { username , password } = req.body;

@@ -7,6 +7,8 @@ import jwt from 'jsonwebtoken';
 import productRoutes from './routes/productRoutes.js'
 import authRoutes from './routes/authRoutes.js'
 import orderRoutes from './routes/orderRoutes.js';
+import { authToken } from './middlewares/authMiddleware.js';
+import { authorize } from './middlewares/roleMiddleware.js';
 
 
 const app = express();
@@ -38,6 +40,10 @@ app.use((req, res, next ) => {
     }
     next()
 });
+
+//Middleware per l'auteniticazione
+app.use(authToken);
+app.use(authorize); 
 
 // Configrazione delle rotte 
 app.use('/product', productRoutes);

@@ -3,6 +3,7 @@ import  { PrismaClient} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+
 export const authorize = (requiredRole) => {
     return ( req, res, next) => {
         const userRole = req.user.role;
@@ -15,6 +16,31 @@ export const authorize = (requiredRole) => {
     }
 }
 
+// funzione per registratre un nuovo utente 
+
+export const registerUser = async ( req, res) => {
+    const { username, password, role } = req.body;
+
+    try {
+        // verifica se l'utente esiste già 
+        const existingUser = await prisma.user.findUnique({ where : { username }});
+        if( existingUser) {
+            return res.status(409).json( { error: "username gia in uso "})
+        }
+
+        // crea un nuovo user nel Db 
+        const newUser = await prisma.user.create({
+            data: { username , password, role: role ||'User'}
+        });
+        res.json(newUser)
+
+        res.status(201).json( { message : "Utente registaro con successo "});
+    } catch (error) {
+        console.error("Errore durante le regitsrazione dell'utente" , error);
+        res.status(500).json( { error:"Errore durante le regitsrazione dell'utente" });
+        
+    }
+}
 
 // funzione per fare il login 
 export const loginUser = async ( req, res ) => {
@@ -24,14 +50,9 @@ export const loginUser = async ( req, res ) => {
         const user = await prisma.user.findUnique({
             where : { username }
         });
-        if( !user ) {
-            return res.status(404).json( { error : "Utente non trovato" });
+        if( !user || user.password !== password) {
+            return res.status(404).json( { error : "Credienzaili non valide " });
         }
-        // Se la password è corretta
-        if( user.password !== password){
-            return res.status(401).json({ error: "password o credenziali non valide" });
-        }
-        
         const token = jwt.sign(
             { userId: user.id, username: user.username, role: user.role },
             'PasswordSegreta123321',

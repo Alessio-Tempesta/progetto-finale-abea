@@ -35,3 +35,69 @@ export const getProductById = async (req , res) => {
     }
 }
 
+// Funzione per creare un nuovo prodotto( accessibile solo per gli amministratori )
+export const createProduct = async (req, res) => {
+    const { name, description, price} = req.body;
+
+    try {
+        // se l'utente è autenticato è un admin
+        if( req.user.role !== 'admin') {
+            return res.status(404).json({ error: "Accesso non autorizzato "})
+        }
+
+        const newProduct = await prisma.product.create({
+            data: {
+                name,
+                description,
+                price
+            },
+        });
+
+        res.json(newProduct)
+    } catch (error) {
+        console.error("Errore durante la creazione del nuovo prodooto");
+        res.status(500).json({ error : "Errore durante la creazione del nuovo prodooto" })
+    }
+}
+
+// funzione per aggiornare un prodotoot esisitente (Admin)
+export const updateProduct = async (req, res) => {
+    const prodcutId = parseInt(req.params.id);
+    const { name, description, price } = req.body;
+
+    try {
+        // se l'utente autenticato è un admin 
+        if( req.user.role !== 'admin'){
+            return res.status(404).json({ error: "Accesso non autorizzato "});
+        }
+        const updatedProduct = await prisma.product.update({
+            where : { id: prodcutId},
+            data: { name, description, price }
+        })
+
+        res.json(updatedProduct)
+    } catch (error) {
+        console.error("Errore durante l'aggiornamento del nuovo prodooto", error);
+        res.status(500).json({ error : "Errore durante l'aggiornamento del nuovo prodotto" })
+    }
+}
+
+// funzione per eliminare un prodotto (Admin)
+
+export const deleteProduct = async (req, res) =>{
+    const productId = parseInt(req.params.id);
+
+    try {
+        if( req.user.role !== 'admin') {
+            return res.status(404).json({ error: "Accesso non autorizzato "});
+        }
+        await prisma.product.delete({
+            where : { id: productId }
+        });
+
+        res.status(204).end();
+    } catch (error) {
+        console.error("Errore durante l'eliminazione del nuovo prodooto", error);
+        res.status(500).json({ error : "Errore durante l'eliminazione del nuovo prodotto" })
+    }
+}

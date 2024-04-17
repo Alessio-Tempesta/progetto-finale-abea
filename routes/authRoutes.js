@@ -37,19 +37,52 @@ router.post('/register', async ( req , res) =>{
 
 router.post('/login' , async (req, res) =>{
     const { username, password } = req.body;
-    if ( username === 'admin' && password === 'password') {
-        const token = jwt.sign({ username }, 'PasswordSegreta123321', { expiresIn: '1h'});
-        res.json( { token} ); 
-    }else {
-        res.status(401).json({ error : "Credenziali non valide"})
+    try {
+        const user = await prisma.user.findUnique({ where: { username }});
+
+        if (!user) {
+        return res.status(401).json( { error: "credenziali non valide"})
+        }
+        // confronto tra le password con la pssword messa ene l DB
+        const passwordMatch = await bcrypt.compare(password, user.password);
+
+        if( !passwordMatch){
+            return res.status(401).json( { error: "credenziali non valide"});    
+        }
+
+        // Generazione Token per l'user autenticato
+        const token = jwt.sign(
+            { userId : user.id, username: user.username, role: user.role},
+            'PasswordSegreta123321',
+            { expiresIn: '1h'} 
+        ) ;
+        res,json( { token });
+    } catch (error) {
+        console.error("Errore durante il login" , error);
+        res.status(500).json({ error: "Errore durante il login"})
     }
 });
 
 router.get('/profile', (req, res) =>{
-    if(req.user){
-        res.json( { message: "benvenuto:" + req.user.username + "!"})
-    }else{
-        res.status(401).json({ message : "Autenticazione richiesta" });
+    const token = req.headers.authorization;
+
+    if(!token) {
+        return res.status(401).json( { message: "Autenticazione Richiesta"});
+        
+    }
+
+    try {
+        const decodedToken = jwt.verify( token, 'PasswordSegreta123321')
+
+        if(!decodedToken){
+            return res.status(401).json( { message: "Token invalido"});
+        }
+
+        const username = decodedToken.username;
+        res.json( { message: "Benvenuto," + username});
+    } catch (error) {
+        console.error("Errore durante il recupero del profilo utente:", error);
+        res.status(500).json( { error: "Errore durante il recupero del profilo utente:" });
     }
 })
 

@@ -54,7 +54,7 @@ router.post('/', async ( req, res ) =>{
 });
 
 // rotte per aggiornare un prodotto esistente per Id
-router.put('/:id', async (req, res) => {
+router.put('/productId', async (req, res) => {
     const productId = parseInt(req.params.id);
     const { name, description, price} = req.body;
 

@@ -9,7 +9,7 @@ export const createOrder = async ( req, res) => {
 
     try {
               // se l'utente è autenticato è un admin
-            if( req.user.role !== 'admin') {
+            if( !req.user || req.user.role !== 'admin') {
                 return res.status(404).json({ error: "Accesso non autorizzato "})
             }
             // crea ordine nel DB 
@@ -52,7 +52,7 @@ export const deleteOrder = async (req , res ) => {
     const orderId = parseInt(req.params.id);
 
     try {
-        if( req.user.role !== 'admin') {
+        if( !req.user || req.user.role !== 'admin') {
             return res.status(404).json({ error: "Accesso non autorizzato "})
         }
         // elimina l'oridne dal database 

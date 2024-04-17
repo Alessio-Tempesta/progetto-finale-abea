@@ -21,12 +21,23 @@ model User {
   orders   Order[]
 }
 
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product @relation(fields: [productId], references: [id])
+}
+
 model Product {
-  id          Int     @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   name        String
   description String
   price       Float
   orders      Order[]
+  CartItem    CartItem[]
 }
 
 model Order {

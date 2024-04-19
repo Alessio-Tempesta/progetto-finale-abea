@@ -5,11 +5,14 @@ import session from 'express-session';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import productRoutes from './routes/productRoutes.js'
+import cartRoutes from './routes/cartRoutes.js'
 import authRoutes from './routes/authRoutes.js'
+import userRoutes  from './routes/userRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import { authToken } from './middlewares/authMiddleware.js';
 import { authorize } from './middlewares/roleMiddleware.js';
-
+import { assignUserRole } from './controllers/userController.js';
+import { roles } from './middlewares/authMiddleware.js';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -22,7 +25,7 @@ app.use(
         secret: "PasswordSegreta123321",
         resave: false,
         saveUninitialized: true,
-        cookie: { secure: true }
+        cookie: { secure: false }
     })
 );
 
@@ -43,14 +46,26 @@ app.use((req, res, next ) => {
 
 //Middleware per l'auteniticazione
 app.use(authToken);
-app.use(authorize); 
+app.use(authorize)
 
-// Configrazione delle rotte 
-app.use('/product', productRoutes);
+// rotta per assengare un ruolo a un utente (solo se è un admin)
+app.use('/admin/users/:userId/role', authorize(roles.ADMIN), assignUserRole );
+app.use('/editor/users', authorize(roles.EDITOR), assignUserRole);
+app.use('/users/user', authorize(roles.USER), assignUserRole);
+
+// Configrazione delle rotte Prodotti
+app.use('/product',productRoutes);
+// rotta per Autenticazione
 app.use('/auth', authRoutes);
+// rotta per gli ordini
 app.use('/order', orderRoutes);
+// rotta per gli utenti o user
+app.use('/user', userRoutes)
+// rotta per il carrello
+app.use('/cart', cartRoutes)
 
 
-app.listen( 80 , ()=> {
-    console.log("Server in funzione all aporta 80")
+
+app.listen( 3000 , ()=> {
+    console.log("Server in funzione all aporta 3000")
 })

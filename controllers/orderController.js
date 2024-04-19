@@ -30,8 +30,8 @@ export const createOrder = async ( req, res) => {
     }
 };
 
-// funzione per ottenere tutti gli oridini di un utente 
-export const getUsersOrders = async ( req, res ) => {
+// funzione per ottenere tutti gli oridini 
+export const getAllOrders = async ( req, res ) => {
     const userId = req.user.userId;
 
     try {
@@ -46,6 +46,39 @@ export const getUsersOrders = async ( req, res ) => {
     }
 };
 
+// funzione per ottenere un oridne per id
+export const getOrderById = async (req , res) => {
+    const { id } = req.params;
+    try {
+        const order = await prisma.order.findUnique({
+            where :{ id : parseInt(id) }
+        });
+        if( !order){
+            res.status(401).json({ error: "Ordine non trovato" });
+        }else{
+            res.json(order)
+        }
+    } catch (error) {
+        console.error("Errore durante il recupeor oridine ");
+        res.status(500).json( { message : "errore durante il recuper dell'ordine"});
+    };
+}
+
+export const updatedOrder = async ( req, res )=> {
+    const { id } = req.params;
+    const { quantity } = req.body;
+    try{
+        const updatedOrder = await prisma.order.update({
+            where : { id: parseInt(id) },
+            data: { quantity }
+        });
+        res.json(updatedOrder);
+    }catch (error){
+        console.error("Errore durante l'aggiornamneto dell' ordine", error);
+        res.status(500).json( { error: "Errore durante l'aggiornamento dell'ordine"})
+    }
+}
+
 // funzione per eliminare un ordine solo per Admin
 
 export const deleteOrder = async (req , res ) => {
@@ -57,7 +90,7 @@ export const deleteOrder = async (req , res ) => {
         }
         // elimina l'oridne dal database 
         await prisma.order.delete({
-            whwre: { id: orderId}
+            where: { id: orderId}
         });
 
         res.status(204).end()

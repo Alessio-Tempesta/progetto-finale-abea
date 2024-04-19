@@ -1,10 +1,21 @@
 import jwt from 'jsonwebtoken';
+
 import  { PrismaClient} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 
-export const authorize = (requiredRole) => {
+ export const setCookieAfterLogin = ( res ,userId, username, role) => {
+    const token = jwt.sign(
+        {userId, username, role},
+        'PasswordSegreta123321',
+        {expiresIn : '1h'}
+    )
+
+    res.cookie('authToken', token, { httpOnly: true, maxAge: 3600000});
+}
+
+export const alsoAuthorize = (requiredRole) => {
     return ( req, res, next) => {
         const userRole = req.user.role;
         
@@ -32,9 +43,10 @@ export const registerUser = async ( req, res) => {
         const newUser = await prisma.user.create({
             data: { username , password, role: role ||'User'}
         });
-        res.json(newUser)
 
-        res.status(201).json( { message : "Utente registaro con successo "});
+        setCookieAfterLogin(res, newUser.id, newUser.username, newUser.role);
+
+        res.status(201).json( { message : "Utente registaro con successo ", user: newUser});
     } catch (error) {
         console.error("Errore durante le regitsrazione dell'utente" , error);
         res.status(500).json( { error:"Errore durante le regitsrazione dell'utente" });
@@ -53,12 +65,10 @@ export const loginUser = async ( req, res ) => {
         if( !user || user.password !== password) {
             return res.status(404).json( { error : "Credienzaili non valide " });
         }
-        const token = jwt.sign(
-            { userId: user.id, username: user.username, role: user.role },
-            'PasswordSegreta123321',
-            { expiresIn : '1h' }
-        );
-        res.json( { token });
+
+        setCookieAfterLogin(res, user.id, user.username, user.role)
+
+        res.json( { message: "Login effettuato con successo", user });
     } catch (error) {
         console.error("errore durante il login :" , error);
         res.status(500).json({ error: "Errore durante il login "})
@@ -66,8 +76,13 @@ export const loginUser = async ( req, res ) => {
 };
 
 // funzione per ottenere il profilo user
- export const getUserProfile = async (req , res) => {
+export const getUserProfile = async (req , res) => {
     const userId = req.user.userId;
+    const token = req.headers.authorization;
+
+    if(!token) {
+        return res.status(401).json( { message: "Autenticazione Richiesta"}); 
+    }
 
     // trovare utene nel db per id
     try {
@@ -79,17 +94,21 @@ export const loginUser = async ( req, res ) => {
         if( !user) {
             return res.status(404).json( { error : "Utente non trovato" });
         }
+        const decodedToken = jwt.verify( token, 'PasswordSegreta123321')
+        
         // verifica se l'autorizzazione e basata sul ruolo
-        if ( user.role !== "Admin"){
-            const userProfile = {
-                id: user.id,
-                username: user.username,
-                role: user.role
-            };
-            return res.json(userProfile)
+        if (!decodedToken || decodedToken.userId !== userId){
+            return res.status(401).json( { message : "Token non valido o utnete non autoirzzato"})
         }
-        // invece se l'utente è un amministratore
-        res.json(user);
+        const userProfile = {
+            id: user.id,
+            username: user.username,
+            role: user.role
+        };
+        if( user.role === "Admin"){
+            return res.json(userProfile);
+        }
+        res.json(userProfile)
     } catch (error) {
         console.error(" Errore durante il recupero del profilo utente ");
         res.status(500).json( { error : " Errore durante il recupero del profilo utente "})
